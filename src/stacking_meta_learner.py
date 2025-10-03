@@ -27,6 +27,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import StackingClassifier
 import mlflow
 import mlflow.sklearn
+import shap
 
 import warnings
 warnings.filterwarnings("ignore", message="No further splits with positive gain")
@@ -248,11 +249,6 @@ mlflow.log_param("best_model", best_model[0])
 mlflow.log_metric("best_macro_f1", best_score)
 
 # ---------------------------------------------------------------------
-# 3. Final training with calibration
-# ---------------------------------------------------------------------
-from sklearn.calibration import CalibratedClassifierCV
-
-# ---------------------------------------------------------------------
 # 3. Final training and evaluation with calibration
 # ---------------------------------------------------------------------
 with ResourceLogger(tag=f"stacker_multiclass_{METRIC_PREFIX}"):
@@ -367,16 +363,11 @@ with open(fold_scores_log_path, "w", newline="") as f_csv:
         writer.writerow([f"Fold-{i+1}", f"{score:.4f}"])
 mlflow.log_artifact(fold_scores_log_path)
 
-
-# In model card writing:
-for i, score in enumerate(best_fold_scores):       # ✅ correct scores
-    f.write(f"  - Fold {i+1}: {score:.4f}\n")
-
-mlflow.log_artifact(fold_scores_log_path)
-
 # SHAP Analysis (for supported models only)
-import shap
-
+waterfall_path = None
+force_plot_path = None
+shap_plot_path = None
+coef_plot_path = None
 explainable_models = {"LightGBM", "XGBoost", "CatBoost", "LogisticRegression"}
 if best_model[0] in explainable_models:
     try:
@@ -408,7 +399,12 @@ if best_model[0] in explainable_models:
                 writer = csv.writer(f)
                 writer.writerow(["Feature Index", "Mean |SHAP|"])
                 for i in top_idx:
-                    writer.writerow([i, f"{mean_shap[i]:.6f}"])
+                    val = mean_shap[i]
+                    if isinstance(val, (np.ndarray, list)):
+                        val = float(np.mean(val))
+                    else:
+                        val = float(val)
+                    writer.writerow([i, f"{val:.6f}"])
             mlflow.log_artifact(top_features_csv)
             print(f"📄 SHAP feature importance saved → {top_features_csv}")
         except Exception as e:
@@ -439,17 +435,35 @@ try:
         explainer = shap.Explainer(best_model[1], X_train_meta)
         shap_values_sample = explainer(sample_input)
 
+        # -------------------------
         # Force plot
+        # -------------------------
         force_plot_path = f"{BASE}/stacker_shap_force_{METRIC_PREFIX}.html"
-        shap.save_html(force_plot_path, shap.plots.force(shap_values_sample[0], matplotlib=False))
+        shap_html = shap.plots.force(
+            explainer.expected_value[0] if isinstance(explainer.expected_value, (list, np.ndarray)) else explainer.expected_value,
+            shap_values_sample[0].values,
+            matplotlib=False
+        )
+        shap.save_html(force_plot_path, shap_html)
         mlflow.log_artifact(force_plot_path)
         print(f"📌 SHAP force plot saved → {force_plot_path}")
 
+        # -------------------------
         # Waterfall plot
+        # -------------------------
         plt.figure()
-        shap.plots.waterfall(shap_values_sample[0], show=False)
+        if shap_values_sample.values.ndim == 2:
+            # Binary / regression case
+            shap.plots.waterfall(shap_values_sample[0], show=False)
+        elif shap_values_sample.values.ndim == 3:
+            # Multiclass case → visualize class 0 (can be swapped to argmax if desired)
+            shap.plots.waterfall(shap_values_sample[0, :, 0], show=False)
+        else:
+            raise ValueError(f"Unexpected SHAP shape: {shap_values_sample.values.shape}")
+
         waterfall_path = f"{BASE}/stacker_shap_waterfall_{METRIC_PREFIX}.png"
         plt.savefig(waterfall_path, bbox_inches="tight")
+        plt.close()
         mlflow.log_artifact(waterfall_path)
         print(f"📊 SHAP waterfall plot saved → {waterfall_path}")
 
@@ -493,8 +507,6 @@ with open(model_card_path, "w") as f_md:
     f_md.write(f"- Accuracy: {acc:.4f}\n")
     f_md.write(f"- Macro F1-score: {best_score:.4f}\n")
     f_md.write("- Per-fold F1 Scores (Best Model):\n")
-    for i, score in enumerate(best_fold_scores):   # ✅ stays inside this block
-        f_md.write(f"  - Fold {i+1}: {score:.4f}\n")
     f_md.write("\n")
 
     f_md.write("## Candidate Comparison (Avg Macro-F1)\n")
@@ -502,13 +514,13 @@ with open(model_card_path, "w") as f_md:
         f_md.write(f"- {name}: {np.mean(fold_scores):.4f}\n")
 
     f_md.write("## Interpretability Artifacts\n")
-    if os.path.exists(shap_plot_path):
+    if shap_plot_path and os.path.exists(shap_plot_path):
         f_md.write(f"- SHAP Summary Plot: `{shap_plot_path}`\n")
-    if best_model[0] == "LogisticRegression" and os.path.exists(coef_plot_path):
+    if coef_plot_path and os.path.exists(coef_plot_path):
         f_md.write(f"- Logistic Regression Coefficients Plot: `{coef_plot_path}`\n")
-    if os.path.exists(force_plot_path):
+    if force_plot_path and os.path.exists(force_plot_path):
         f_md.write(f"- SHAP Force Plot: `{force_plot_path}`\n")
-    if os.path.exists(waterfall_path):
+    if waterfall_path and os.path.exists(waterfall_path):
         f_md.write(f"- SHAP Waterfall Plot: `{waterfall_path}`\n")
 
     f_md.write("\n## Notes\n")
