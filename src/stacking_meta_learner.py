@@ -349,12 +349,13 @@ mlflow.log_artifact(pred_csv_path)
 
 # Save per-fold F1 scores (best model only)
 fold_scores_log_path = f"{BASE}/stacker_best_model_folds_{METRIC_PREFIX}.csv"
-with open(fold_scores_log_path, "w", newline="") as f:
-    writer = csv.writer(f)
+with open(fold_scores_log_path, "w", newline="") as f_csv:
+    writer = csv.writer(f_csv)
     writer.writerow(["Fold", "Macro-F1"])
-    for i, score in enumerate(best_fold_scores):   # ✅ use stored fold scores
+    for i, score in enumerate(best_fold_scores):
         writer.writerow([f"Fold-{i+1}", f"{score:.4f}"])
 mlflow.log_artifact(fold_scores_log_path)
+
 
 # In model card writing:
 for i, score in enumerate(best_fold_scores):       # ✅ correct scores
@@ -472,18 +473,18 @@ if best_model[0] == "LogisticRegression" and hasattr(best_model[1], "coef_"):
 # 8. Model Card-style Interpretability Summary
 # ---------------------------------------------------------------------
 model_card_path = f"{BASE}/model_card_{METRIC_PREFIX}.md"
-with open(model_card_path, "w") as f:
-    f.write(f"# Model Card: Meta-Learner ({best_model[0]})\n\n")
-    f.write(f"**Metric Prefix**: `{METRIC_PREFIX}`\n")
-    f.write(f"**Selected Model**: `{best_model[0]}`\n\n")
+with open(model_card_path, "w") as f_md:
+    f_md.write(f"# Model Card: Meta-Learner ({best_model[0]})\n\n")
+    f_md.write(f"**Metric Prefix**: `{METRIC_PREFIX}`\n")
+    f_md.write(f"**Selected Model**: `{best_model[0]}` + CalibratedClassifierCV\n\n")
 
-    f.write("## Performance Summary\n")
-    f.write(f"- Accuracy: {acc:.4f}\n")
-    f.write(f"- Macro F1-score: {best_score:.4f}\n")
-    f.write("- Per-fold F1 Scores (Best Model):\n")
+    f_md.write("## Performance Summary\n")
+    f_md.write(f"- Accuracy: {acc:.4f}\n")
+    f_md.write(f"- Macro F1-score: {best_score:.4f}\n")
+    f_md.write("- Per-fold F1 Scores (Best Model):\n")
     for i, score in enumerate(best_fold_scores):
-        f.write(f"  - Fold {i+1}: {score:.4f}\n")
-    f.write("\n")
+        f_md.write(f"  - Fold {i+1}: {score:.4f}\n")
+    f_md.write("\n")
 
     f.write("## Candidate Comparison (Avg Macro-F1)\n")
     for name, fold_scores in candidate_scores.items():
