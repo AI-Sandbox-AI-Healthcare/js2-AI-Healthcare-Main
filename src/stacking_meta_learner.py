@@ -493,7 +493,7 @@ with open(model_card_path, "w") as f_md:
     f_md.write(f"- Accuracy: {acc:.4f}\n")
     f_md.write(f"- Macro F1-score: {best_score:.4f}\n")
     f_md.write("- Per-fold F1 Scores (Best Model):\n")
-    for i, score in enumerate(best_fold_scores):
+    for i, score in enumerate(best_fold_scores):   # ✅ stays inside this block
         f_md.write(f"  - Fold {i+1}: {score:.4f}\n")
     f_md.write("\n")
 
@@ -501,14 +501,14 @@ with open(model_card_path, "w") as f_md:
     for name, fold_scores in candidate_scores.items():
         f_md.write(f"- {name}: {np.mean(fold_scores):.4f}\n")
 
-    f_md.write("\n## Interpretability Artifacts\n")
-    if "shap_plot_path" in locals() and os.path.exists(shap_plot_path):
+    f_md.write("## Interpretability Artifacts\n")
+    if os.path.exists(shap_plot_path):
         f_md.write(f"- SHAP Summary Plot: `{shap_plot_path}`\n")
-    if best_model[0] == "LogisticRegression" and "coef_plot_path" in locals() and os.path.exists(coef_plot_path):
+    if best_model[0] == "LogisticRegression" and os.path.exists(coef_plot_path):
         f_md.write(f"- Logistic Regression Coefficients Plot: `{coef_plot_path}`\n")
-    if "force_plot_path" in locals() and os.path.exists(force_plot_path):
+    if os.path.exists(force_plot_path):
         f_md.write(f"- SHAP Force Plot: `{force_plot_path}`\n")
-    if "waterfall_path" in locals() and os.path.exists(waterfall_path):
+    if os.path.exists(waterfall_path):
         f_md.write(f"- SHAP Waterfall Plot: `{waterfall_path}`\n")
 
     f_md.write("\n## Notes\n")
