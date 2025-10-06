@@ -16,9 +16,9 @@ echo "🕒 Started at: $(date)"
 echo "--------------------------------------------------"
 
 # -------------------------------------------------------------------------
-# STEP 1: Run 30 iterations with benchmarking and logging
+# STEP 1: Run iterations with benchmarking and logging
 # -------------------------------------------------------------------------
-echo "🚀 Launching 30 Benchmark Iterations..."
+echo "🚀 Launching Benchmark Iterations (total)..."
 bash run_benchmark_iterations.sh
 
 # -------------------------------------------------------------------------
@@ -29,32 +29,21 @@ echo "📊 Summarizing Benchmark..."
 bash run_summarize_benchmarks.sh
 
 # -------------------------------------------------------------------------
-# STEP 3: Generate F1 distribution plots (optional)
-# -------------------------------------------------------------------------
-if [ -f "plot_f1_distributions.py" ]; then
-  echo ""
-  echo "📈 Generating F1 distribution plots..."
-  python3 plot_f1_distributions.py
-else
-  echo "⚠️  Skipping F1 plots: plot_f1_distributions.py not found."
-fi
-
-# -------------------------------------------------------------------------
-# STEP 4: Artifact Summary
+# STEP 3: Artifact Summary
 # -------------------------------------------------------------------------
 echo ""
 echo "📂 Benchmark Artifacts:"
 ls -lh results_summary*.csv iteration_summary.csv logs/*.out 2>/dev/null | grep -v '.err' || echo "⚠️  No artifacts found."
 
 # -------------------------------------------------------------------------
-# STEP 5: Organize Outputs
+# STEP 4: Organize Outputs
 # -------------------------------------------------------------------------
 echo ""
 echo "🧹 Organizing output files..."
 bash organize_artifacts.sh
 
 # -------------------------------------------------------------------------
-# STEP 6: Generate README
+# STEP 5: Generate README
 # -------------------------------------------------------------------------
 echo ""
 echo "📝 Creating README.md..."
