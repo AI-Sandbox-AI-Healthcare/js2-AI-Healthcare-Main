@@ -22,6 +22,7 @@ from catboost import CatBoostClassifier
 from resource_logger import ResourceLogger
 import argparse
 import joblib
+from collections import Counter
 from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import StackingClassifier
@@ -159,12 +160,37 @@ y_true = (
 num_classes = len(np.unique(y_true))
 mlflow.log_param("num_classes", num_classes)
 
+# ---------------------------------------------------------------------
+# Train/test split with compatibility for sklearn >=1.7.0
+# ---------------------------------------------------------------------
+
+cls_counts = Counter(y_true)
+too_small = [cls for cls, cnt in cls_counts.items() if cnt < 2]
+
+if too_small:
+    print(f"⚠️ Some classes have <2 samples and cannot be stratified: {too_small}")
+    print(f"Using non-stratified split instead (sklearn>=1.7 strict mode).")
+    mlflow.log_param("split_stratified", False)
+    mlflow.log_param("classes_too_small", str(dict(cls_counts)))
+    stratify_arg = None
+else:
+    mlflow.log_param("split_stratified", True)
+    stratify_arg = y_true
+
 train_idx, test_idx = train_test_split(
-    np.arange(len(X_meta)), test_size=0.2, stratify=y_true, random_state=SEED
+    np.arange(len(X_meta)),
+    test_size=0.2,
+    stratify=stratify_arg,
+    random_state=SEED,
 )
+
 X_train_meta, X_test_meta = X_meta[train_idx], X_meta[test_idx]
 y_train_meta, y_test_meta = y_true[train_idx], y_true[test_idx]
 test_subject_ids = np.array(intersect_ids)[test_idx]
+
+print(f"✅ Train/test split complete ({len(train_idx)} train, {len(test_idx)} test)")
+mlflow.log_param("train_size", len(train_idx))
+mlflow.log_param("test_size", len(test_idx))
 
 # ---------------------------------------------------------------------
 # Filter out rare classes in y_train_meta that may break CV splits
