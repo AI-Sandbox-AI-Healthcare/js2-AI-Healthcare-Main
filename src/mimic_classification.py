@@ -30,7 +30,7 @@ BASE = "./"
 parser = argparse.ArgumentParser()
 parser.add_argument("--metric_prefix", type=str, default=None)
 args = parser.parse_args()
-METRIC_PREFIX = args.metric_prefix or os.getenv("METRIC_PREFIX", "run1")
+METRIC_PREFIX = args.metric_prefix or os.getenv("METRIC_PREFIX", "iter1")
 
 # ------------------------------------------------------------------
 # 1. Load & preprocess
