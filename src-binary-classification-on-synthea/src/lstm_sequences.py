@@ -18,7 +18,7 @@ METRIC_PREFIX = os.getenv("METRIC_PREFIX", "iter1")
 # 1. Load boosted structured + note features
 # ---------------------------------------------------------------------
 print("🔹 Loading data...")
-df = pd.read_csv("synthea_enriched_features_w_notes.csv")
+df = pd.read_csv("../analysis/data/derivedData/synthea_enriched_features_w_notes.csv")
 
 # ---------------------------------------------------------------------
 # 2. Feature Selection
@@ -90,7 +90,7 @@ subject_ids = np.array(subject_ids)
 # 5. Shared validation split
 # ---------------------------------------------------------------------
 print("🔹 Splitting train/val with shared IDs...")
-val_ids = np.load(f"shared_val_ids_{METRIC_PREFIX}.npy", allow_pickle=True)
+val_ids = np.load(f"../analysis/data/derivedData/shared_val_ids_{METRIC_PREFIX}.npy", allow_pickle=True)
 
 is_val = np.isin(subject_ids, val_ids)
 X_train, X_val = X[~is_val], X[is_val]
@@ -132,7 +132,7 @@ if train_counts[minority_class] < OVERSAMPLE_TARGET:
 # ---------------------------------------------------------------------
 print("🔹 Saving sequences...")
 
-out_dir = "."
+out_dir = "../analysis/data/derivedData/"
 os.makedirs(out_dir, exist_ok=True)
 np.save(f"{out_dir}/X_train_seq.npy", X_train)
 np.save(f"{out_dir}/y_train_seq.npy", y_train)

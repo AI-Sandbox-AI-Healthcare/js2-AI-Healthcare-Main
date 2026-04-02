@@ -1,2 +1,4 @@
 analysis/data/rawData/*.csv
 analysis/data/derivedData/**
+analysis/cache/**
+analysis/logs/**

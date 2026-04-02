@@ -25,14 +25,14 @@ args = parser.parse_args()
 BASE_SEED = 42
 SEED = BASE_SEED + args.seed_offset
 np.random.seed(SEED)
-VAL_IDS_PATH = Path(f"shared_val_ids_{args.metric_prefix}.npy")
+VAL_IDS_PATH = Path(f"../analysis/data/derivedData/shared_val_ids_{args.metric_prefix}.npy")
 
 # --------------------------------------------------------------
 # Load patient-level data
 # --------------------------------------------------------------
-feat_path = Path("synthea_enriched_features_w_notes.csv")
+feat_path = Path("../analysis/data/derivedData/synthea_enriched_features_w_notes.csv")
 if not feat_path.exists():
-    raise FileNotFoundError("Missing synthea_enriched_features_w_notes.csv")
+    raise FileNotFoundError("Missing ../analysis/data/derivedData/synthea_enriched_features_w_notes.csv")
 
 df = pd.read_csv(feat_path)
 

@@ -26,7 +26,14 @@ OFFSET = int(os.getenv("SEED_OFFSET", 0))
 SEED = BASE_SEED + OFFSET
 np.random.seed(SEED)
 
-BASE = "./"
+BASE = "../analysis/data/derivedData"
+Models_BASE = "../analysis/models"
+Metrics_BASE = "../analysis/results/metrics"
+Plot_BASE = "../analysis/results/figures/xgb_randomforest"
+
+# Create directories if not present
+os.makedirs(Plot_BASE, exist_ok=True)
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--metric_prefix", type=str, default=None)
 args = parser.parse_args()
@@ -58,7 +65,7 @@ y = y.astype(int)
 # ------------------------------------------------------------------
 # 2. Train/val split with shared validation IDs
 # ------------------------------------------------------------------
-val_ids = np.load(f"shared_val_ids_{METRIC_PREFIX}.npy", allow_pickle=True)
+val_ids = np.load(f"{BASE}/shared_val_ids_{METRIC_PREFIX}.npy", allow_pickle=True)
 is_val = df["id"].isin(val_ids)
 df_train = df[~is_val]
 df_test  = df[is_val]
@@ -142,9 +149,9 @@ with ResourceLogger(tag=f"tabular_rf_xgb_{METRIC_PREFIX}"):
 # ------------------------------------------------------------------
 # 6. Save models & outputs
 # ------------------------------------------------------------------
-joblib.dump(rf, f"{BASE}/synthea_randomforest_model_{METRIC_PREFIX}.pkl")
-joblib.dump(xgb, f"{BASE}/synthea_xgb_model_{METRIC_PREFIX}.pkl")
-joblib.dump(scaler, f"{BASE}/scaler_{METRIC_PREFIX}.pkl")
+joblib.dump(rf, f"{Models_BASE}/synthea_randomforest_model_{METRIC_PREFIX}.pkl")
+joblib.dump(xgb, f"{Models_BASE}/synthea_xgb_model_{METRIC_PREFIX}.pkl")
+joblib.dump(scaler, f"{Models_BASE}/scaler_{METRIC_PREFIX}.pkl")
 
 np.savez_compressed(
     f"{BASE}/rf_probs_{METRIC_PREFIX}.npz",
@@ -163,22 +170,28 @@ np.savez_compressed(
 # ------------------------------------------------------------------
 # 7. Metrics + ROC curve
 # ------------------------------------------------------------------
-with open(f"{BASE}/tabular_metrics_{METRIC_PREFIX}.csv", "w", newline="") as f:
+with open(f"{Metrics_BASE}/tabular_metrics_{METRIC_PREFIX}.csv", "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerow(["Model", "AUC"])
     writer.writerow(["RandomForest", f"{auc_rf:.4f}"])
     writer.writerow(["XGBoost", f"{auc_xgb:.4f}"])
 
-# ROC curve (XGB example)
-fpr, tpr, _ = roc_curve(y_test, prob_xgb)
-plt.figure()
-plt.plot(fpr, tpr, label=f"AUC = {auc_xgb:.2f}")
+# ROC curve (RF vs XGB)
+# RF
+fpr_rf, tpr_rf, _ = roc_curve(y_test, prob_rf)
+plt.plot(fpr_rf, tpr_rf, label=f"RF (AUC = {auc_rf:.2f})")
+# XGB
+fpr_xgb, tpr_xgb, _ = roc_curve(y_test, prob_xgb)
+plt.plot(fpr_xgb, tpr_xgb, label=f"XGB (AUC = {auc_xgb:.2f})")
+
 plt.plot([0, 1], [0, 1], 'k--')
-plt.xlabel("FPR"); plt.ylabel("TPR")
-plt.title("XGBoost ROC (Binary)")
-plt.legend(); plt.grid()
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.title("ROC Curve Comparison (RF vs XGB)")
+plt.legend()
+plt.grid()
 plt.tight_layout()
-plt.savefig(f"{BASE}/xgb_roc_curve_{METRIC_PREFIX}.png")
+plt.savefig(f"{Plot_BASE}/roc_comparison_rf_vs_xgb_{METRIC_PREFIX}.png")
 plt.close()
 
 print(f"📊 Metrics saved using best resampling method: {best_method.upper()} (Macro F1: {best_score:.3f})")

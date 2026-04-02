@@ -18,7 +18,7 @@ args = parser.parse_args()
 # ---------------------------------------------------------------------
 # 1. Load notes
 # ---------------------------------------------------------------------
-notes_path = "./note_sequences_per_patient.npy"
+notes_path = "../analysis/data/derivedData/note_sequences_per_patient.npy"
 note_sequences = np.load(notes_path, allow_pickle=True).item()
 
 # ---------------------------------------------------------------------
@@ -29,7 +29,7 @@ print(f"ℹ️ Tokenizing all subjects: {len(note_sequences)} available")
 # ---------------------------------------------------------------------
 # 2. Detect SEQUENCE_LENGTH dynamically from structured sequences
 # ---------------------------------------------------------------------
-seq_file = "./X_train_transformer.npy"
+seq_file = "../analysis/data/derivedData/X_train_transformer.npy"
 if os.path.exists(seq_file):
     X_train = np.load(seq_file, mmap_mode="r")
     SEQUENCE_LENGTH = X_train.shape[1]   # dimension T
@@ -40,7 +40,7 @@ else:
 
 MAX_NOTES_PER_ADMISSION = SEQUENCE_LENGTH
 MAX_TOKENS_PER_NOTE = 256
-CACHE_DIR = "./tokenized_cache"
+CACHE_DIR = "../analysis/cache/tokenized_cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 # ---------------------------------------------------------------------
@@ -105,7 +105,7 @@ with ProcessPoolExecutor(max_workers=max_workers, initializer=init_tokenizer) as
                 all_inputs.append(tokenized["input_ids"])     # (T, L)
                 all_masks.append(tokenized["attention_mask"]) # (T, L)
         except Exception as e:
-            print(f"?? Error tokenizing subject {futures[future]}: {e}")
+            print(f"Error tokenizing subject {futures[future]}: {e}")
             skipped_subjects.append(futures[future])
         
 # ---------------------------------------------------------------------
@@ -121,12 +121,12 @@ all_masks = np.stack(all_masks)     # (N, T, L)
 # ---------------------------------------------------------------------
 # 7. Save aligned arrays (fast load at training)
 # ---------------------------------------------------------------------
-np.save(f"tokenized_input_ids_{args.metric_prefix}.npy", all_inputs)
-np.save(f"tokenized_attention_masks_{args.metric_prefix}.npy", all_masks)
-np.save(f"tokenized_subject_ids_{args.metric_prefix}.npy", all_ids)
+np.save(f"../analysis/data/derivedData/tokenized_input_ids_{args.metric_prefix}.npy", all_inputs)
+np.save(f"../analysis/data/derivedData/tokenized_attention_masks_{args.metric_prefix}.npy", all_masks)
+np.save(f"../analysis/data/derivedData/tokenized_subject_ids_{args.metric_prefix}.npy", all_ids)
 
 # optional marker
-with open("./tokenization_complete.txt", "w") as f:
+with open("../analysis/logs/tokenization_complete.txt", "w") as f:
     f.write(f"Tokenization completed successfully.\nPatients: {len(all_ids)}\n")
 
 print("\n📋 Parallel Tokenization Summary")

@@ -18,7 +18,7 @@ np.random.seed(SEED)
 # 1) Load
 # ---------------------------------------------------------------------
 print("🔹 Loading data...")
-df = pd.read_csv("synthea_enriched_features_w_notes.csv")
+df = pd.read_csv("../analysis/data/derivedData/synthea_enriched_features_w_notes.csv")
 
 required_cols = {
     'id', 'race', 'ethnicity', 'healthcare_expenses', 'healthcare_coverage',
@@ -171,7 +171,7 @@ X_val = X_val_scaled_flat.reshape(N_val, T_val, F_val)
 # 6) Save outputs (features, labels, masks, subject_ids, feature list)
 # ---------------------------------------------------------------------
 print("🔹 Saving sequences...")
-out_dir = "./"
+out_dir = "../analysis/data/derivedData/"
 os.makedirs(out_dir, exist_ok=True)
 
 np.save(f"{out_dir}/X_train_transformer.npy", X_train)

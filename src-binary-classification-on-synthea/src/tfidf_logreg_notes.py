@@ -24,7 +24,13 @@ import argparse
 # ------------------------------------------------------------------
 SEED = 42
 np.random.seed(SEED)
-BASE = "./"
+BASE = "../analysis/data/derivedData"
+Metrics_BASE = "../analysis/results/metrics"
+Plot_BASE = "../analysis/results/figures/tfidf_logreg"
+
+# Create directories if not present
+os.makedirs(Metrics_BASE, exist_ok=True)
+os.makedirs(Plot_BASE, exist_ok=True)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--metric_prefix", type=str, default=None)
@@ -64,7 +70,7 @@ print("Class distribution:", np.bincount(y))
 # ------------------------------------------------------------------
 # 3. Shared validation split
 # ------------------------------------------------------------------
-val_ids = np.load(f"shared_val_ids_{METRIC_PREFIX}.npy", allow_pickle=True)
+val_ids = np.load(f"{BASE}/shared_val_ids_{METRIC_PREFIX}.npy", allow_pickle=True)
 is_val = np.isin(subj_ids, val_ids)
 
 train_idx = np.where(~is_val)[0]
@@ -115,7 +121,7 @@ prob_pos = prob[:, 1]  # select positive-class probability
 roc_auc  = roc_auc_score(y_test, prob_pos)
 report   = classification_report(y_test, preds, output_dict=True, zero_division=0)
 
-METRIC_CSV = f"{BASE}/tfidf_metrics_{METRIC_PREFIX}.csv"
+METRIC_CSV = f"{Metrics_BASE}/tfidf_metrics_{METRIC_PREFIX}.csv"
 with open(METRIC_CSV, "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerow(["Metric","Precision","Recall","F1"])
@@ -140,7 +146,7 @@ plt.xlabel("False Positive Rate"); plt.ylabel("True Positive Rate")
 plt.title("TF-IDF Logistic Regression ROC (Binary)")
 plt.legend(); plt.grid()
 plt.tight_layout()
-plt.savefig(f"{BASE}/tfidf_roc_curve_{METRIC_PREFIX}.png")
+plt.savefig(f"{Plot_BASE}/tfidf_roc_curve_{METRIC_PREFIX}.png")
 plt.close()
 
 # ------------------------------------------------------------------
@@ -153,5 +159,5 @@ sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
 plt.xlabel("Predicted"); plt.ylabel("True")
 plt.title("TF-IDF LogReg Confusion Matrix (Binary)")
 plt.tight_layout()
-plt.savefig(f"{BASE}/tfidf_confusion_{METRIC_PREFIX}.png")
+plt.savefig(f"{Plot_BASE}/tfidf_confusion_{METRIC_PREFIX}.png")
 plt.close()

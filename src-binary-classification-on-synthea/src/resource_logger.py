@@ -11,7 +11,7 @@ The logger appends one row per run to <BASE>/resource_usage.csv.
 import csv, os, time, psutil, shutil, torch
 from contextlib import contextmanager
 
-BASE = "./"
+BASE = "../analysis/logs/"
 LOG_PATH = os.path.join(BASE, "resource_usage.csv")
 os.makedirs(BASE, exist_ok=True)
 
