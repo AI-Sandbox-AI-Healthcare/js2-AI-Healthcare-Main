@@ -1,0 +1,2 @@
+analysis/data/rawData/*.csv
+analysis/data/derivedData/**

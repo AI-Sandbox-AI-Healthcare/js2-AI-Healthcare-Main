@@ -8,7 +8,7 @@ from tqdm import tqdm
 # ---------------------------------------------------------------------
 # 1. Load Medications Data
 # ---------------------------------------------------------------------
-medications_path = os.getenv("synthea_medications_path", "./synthea_data/medications.csv")
+medications_path = os.getenv("synthea_medications_path", "../analysis/data/rawData/medications.csv")
 medications_df = pd.read_csv(medications_path, low_memory=False)
 medications_df.columns = medications_df.columns.str.lower().str.strip()
 
@@ -29,7 +29,7 @@ for patient, group in medications_text.groupby('patient'):
 # ---------------------------------------------------------------------
 # 3. Save
 # ---------------------------------------------------------------------
-out_path = "./note_sequences_per_patient.npy"
+out_path = "../analysis/data/derivedData/note_sequences_per_patient.npy"
 os.makedirs(os.path.dirname(out_path), exist_ok=True)
 np.save(out_path, note_sequences)
 

@@ -46,12 +46,12 @@ def load_csv(file, usecols=None):
     return df
 
 try:
-    patients_df = load_csv("./synthea_data/patients.csv")
-    conditions_df = load_csv("./synthea_data/conditions.csv")
-    medications_df = load_csv("./synthea_data/medications.csv")
-    encounters_df = load_csv("./synthea_data/encounters.csv")
-    observations_df = load_csv("./synthea_data/observations.csv")
-    procedures_df = load_csv("./synthea_data/procedures.csv")
+    patients_df = load_csv("../analysis/data/rawData/patients.csv")
+    conditions_df = load_csv("../analysis/data/rawData/conditions.csv")
+    medications_df = load_csv("../analysis/data/rawData/medications.csv")
+    encounters_df = load_csv("../analysis/data/rawData/encounters.csv")
+    observations_df = load_csv("../analysis/data/rawData/observations.csv")
+    procedures_df = load_csv("../analysis/data/rawData/procedures.csv")
 except Exception as e:
     print("Error loading tables:", e)
     raise
@@ -315,10 +315,10 @@ summary = {
     "n_rows": len(merged_df),
     "class_counts": counts.to_dict(),
 }
-with open("synthea_enriched_features_summary.json", "w") as f:
+with open("../analysis/data/derivedData/synthea_enriched_features_summary.json", "w") as f:
     json.dump(summary, f, indent=2)
 
-output_csv = "synthea_enriched_features.csv"
+output_csv = "../analysis/data/derivedData/synthea_enriched_features.csv"
 merged_df[final_cols].to_csv(output_csv, index=False)
 print(f"Saved enriched dataset to {output_csv}.")
 
