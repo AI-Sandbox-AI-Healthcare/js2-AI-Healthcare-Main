@@ -54,7 +54,14 @@ class GRUClassifier(nn.Module):
 # ---------------------------------------------------------------------
 # 2. CLI args & paths
 # ---------------------------------------------------------------------
-BASE = "./"
+BASE = "../analysis/data/derivedData"
+Models_BASE = "../analysis/models"
+Metrics_BASE = "../analysis/results/metrics"
+Plot_BASE = "../analysis/results/figures/gru"
+
+# Create directories if not present
+os.makedirs(Plot_BASE, exist_ok=True)
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--metric_prefix", type=str, default="iter1")
 args = parser.parse_args()
@@ -97,15 +104,15 @@ pos_weight = torch.tensor((len(y_train)-y_train.sum()) / y_train.sum(), dtype=to
 
 crit = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
-BEST = f"{BASE}/gru_model_{METRIC_PREFIX}.pt"
-METRIC = f"{BASE}/gru_metrics_{METRIC_PREFIX}.csv"
+BEST = f"{Models_BASE}/gru_model_{METRIC_PREFIX}.pt"
+METRIC = f"{Metrics_BASE}/gru_metrics_{METRIC_PREFIX}.csv"
 
 # ---------------------------------------------------------------------
 # 6. Training loop with early stopping
 # ---------------------------------------------------------------------
 with ResourceLogger(tag=f"gru_binary_{METRIC_PREFIX}"):
     best, pat, cnt = float("inf"), 3, 0
-    for ep in range(20):
+    for ep in range(30):
         # --- Train ---
         model.train(); tl = 0
         for xb, yb, _ in tqdm(train_loader, desc=f"Epoch {ep+1:02d} Training"):
@@ -185,7 +192,7 @@ sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=[0,1], yticklabel
 plt.xlabel("Predicted"); plt.ylabel("True")
 plt.title("Confusion Matrix - GRU Binary")
 plt.tight_layout()
-plt.savefig(f"{BASE}/gru_confusion_{METRIC_PREFIX}.png")
+plt.savefig(f"{Plot_BASE}/gru_confusion_{METRIC_PREFIX}.png")
 plt.close()
 
 # ROC Curve
@@ -198,7 +205,7 @@ plt.xlabel("False Positive Rate"); plt.ylabel("True Positive Rate")
 plt.title("GRU Binary ROC")
 plt.legend(); plt.grid()
 plt.tight_layout()
-plt.savefig(f"{BASE}/gru_roc_{METRIC_PREFIX}.png")
+plt.savefig(f"{Plot_BASE}/gru_roc_{METRIC_PREFIX}.png")
 plt.close()
 
 # ---------------------------------------------------------------------
@@ -210,5 +217,5 @@ np.savez_compressed(
     y_true=trues,
     subject_ids=subj_out
 )
-print(f"Saved GRU probs → gru_probs_{METRIC_PREFIX}.npz")
+print(f"Saved GRU probs → ../analysis/data/derivedData/gru_probs_{METRIC_PREFIX}.npz")
 print(f"✅ Finished GRU training with shared val IDs [{METRIC_PREFIX}]")

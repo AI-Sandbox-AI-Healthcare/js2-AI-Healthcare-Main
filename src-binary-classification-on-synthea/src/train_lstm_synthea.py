@@ -57,7 +57,14 @@ class LSTMClassifier(nn.Module):
 # ---------------------------------------------------------------------
 # 2. CLI & Paths
 # ---------------------------------------------------------------------
-BASE = "."
+BASE = "../analysis/data/derivedData"
+Models_BASE = "../analysis/models"
+Metrics_BASE = "../analysis/results/metrics"
+Plot_BASE = "../analysis/results/figures/lstm"
+
+# Create directories if not present
+os.makedirs(Plot_BASE, exist_ok=True)
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--metric_prefix", type=str, default="iter1")
 args = parser.parse_args()
@@ -100,15 +107,15 @@ pos_weight = torch.tensor(
 
 criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
-BEST_PATH = f"{BASE}/lstm_model_{METRIC_PREFIX}.pt"
-METRIC_CSV = f"{BASE}/lstm_metrics_{METRIC_PREFIX}.csv"
+BEST_PATH = f"{Models_BASE}/lstm_model_{METRIC_PREFIX}.pt"
+METRIC_CSV = f"{Metrics_BASE}/lstm_metrics_{METRIC_PREFIX}.csv"
 
 # ---------------------------------------------------------------------
 # 5. Train + validate with ResourceLogger
 # ---------------------------------------------------------------------
 with ResourceLogger(tag=f"lstm_binary_{METRIC_PREFIX}"):
     best_val, patience, counter = float("inf"), 3, 0
-    for epoch in range(20):
+    for epoch in range(30):
         # --- Train ---
         model.train(); tr_loss = 0
         for Xb, yb, _ in train_loader:
@@ -182,7 +189,7 @@ sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=[0,1], yticklabel
 plt.xlabel("Predicted"); plt.ylabel("True")
 plt.title("LSTM Binary Confusion Matrix")
 plt.tight_layout()
-plt.savefig(f"{BASE}/lstm_confusion_{METRIC_PREFIX}.png")
+plt.savefig(f"{Plot_BASE}/lstm_confusion_{METRIC_PREFIX}.png")
 plt.close()
 
 # ROC curve
@@ -193,7 +200,7 @@ plt.xlabel("FPR"); plt.ylabel("TPR")
 plt.title("LSTM Binary ROC")
 plt.legend(); plt.grid()
 plt.tight_layout()
-plt.savefig(f"{BASE}/lstm_roc_curve_{METRIC_PREFIX}.png")
+plt.savefig(f"{Plot_BASE}/lstm_roc_curve_{METRIC_PREFIX}.png")
 plt.close()
 
 # Save stacking probabilities
@@ -203,6 +210,6 @@ np.savez_compressed(
     y_true=trues,
     subject_ids=subj_out
 )
-print(f"Saved LSTM probs → lstm_probs_{METRIC_PREFIX}.npz")
+print(f"Saved LSTM probs → ../analysis/data/derivedData/lstm_probs_{METRIC_PREFIX}.npz")
 
 print(f"✅ Finished LSTM training with shared val IDs [{METRIC_PREFIX}]")

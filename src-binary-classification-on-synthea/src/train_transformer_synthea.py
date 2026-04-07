@@ -60,7 +60,14 @@ class TransformerClassifier(nn.Module):
 # ------------------------------------------------------------------
 # 2. CLI & Paths
 # ------------------------------------------------------------------
-BASE = "./"
+BASE = "../analysis/data/derivedData"
+Models_BASE = "../analysis/models"
+Metrics_BASE = "../analysis/results/metrics"
+Plot_BASE = "../analysis/results/figures/transformer"
+
+# Create directories if not present
+os.makedirs(Plot_BASE, exist_ok=True)
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--metric_prefix", type=str, default="iter1")
 args = parser.parse_args()
@@ -95,15 +102,15 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 pos_weight = torch.tensor((y_train==0).sum() / (y_train==1).sum(), dtype=torch.float32).to(device)
 criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
-BEST_PATH   = f"{BASE}/synthea_transformer_model_{METRIC_PREFIX}.pt"
-METRIC_CSV  = f"{BASE}/transformer_metrics_{METRIC_PREFIX}.csv"
+BEST_PATH   = f"{Models_BASE}/synthea_transformer_model_{METRIC_PREFIX}.pt"
+METRIC_CSV  = f"{Metrics_BASE}/transformer_metrics_{METRIC_PREFIX}.csv"
 
 # ------------------------------------------------------------------
 # 5. Train + validate with ResourceLogger
 # ------------------------------------------------------------------
 with ResourceLogger(tag=f"transformer_{METRIC_PREFIX}"):
     best_val, patience, counter = float('inf'), 3, 0
-    for epoch in range(20):
+    for epoch in range(30):
         # --- train ---
         model.train(); tr_loss=0
         for xb, yb, mb, _ in train_loader:
@@ -187,7 +194,7 @@ sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=[0,1], yticklabel
 plt.xlabel("Predicted"); plt.ylabel("True")
 plt.title("Transformer Binary Confusion Matrix")
 plt.tight_layout()
-plt.savefig(f"{BASE}/transformer_confusion_{METRIC_PREFIX}.png")
+plt.savefig(f"{Plot_BASE}/transformer_confusion_{METRIC_PREFIX}.png")
 plt.close()
 
 fpr, tpr, _ = roc_curve(trues, probs)
@@ -199,7 +206,7 @@ plt.xlabel("FPR"); plt.ylabel("TPR")
 plt.title("Transformer Binary ROC")
 plt.legend(); plt.grid()
 plt.tight_layout()
-plt.savefig(f"{BASE}/transformer_roc_{METRIC_PREFIX}.png")
+plt.savefig(f"{Plot_BASE}/transformer_roc_{METRIC_PREFIX}.png")
 plt.close()
 
 # ------------------------------------------------------------------
@@ -211,5 +218,5 @@ np.savez_compressed(
     y_true=trues,
     subject_ids=subj_out
 )
-print(f"Saved Transformer probs → transformer_probs_{METRIC_PREFIX}.npz")
+print(f"Saved Transformer probs → ../analysis/data/derivedData/transformer_probs_{METRIC_PREFIX}.npz")
 print(f"✅ Finished Transformer training with split files [{METRIC_PREFIX}]")

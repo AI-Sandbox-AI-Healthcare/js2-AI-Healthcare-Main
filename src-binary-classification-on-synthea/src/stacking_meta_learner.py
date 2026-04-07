@@ -42,22 +42,31 @@ OFFSET = int(os.getenv("SEED_OFFSET", 0))
 SEED = BASE_SEED + OFFSET
 rng = np.random.default_rng(SEED)
 
-
 # Args and paths
 parser = argparse.ArgumentParser()
 parser.add_argument("--metric_prefix", type=str, default=None)
 args = parser.parse_args()
 METRIC_PREFIX = args.metric_prefix or os.getenv("METRIC_PREFIX", "iter1")
-BASE = "."
+BASE = "../analysis/data/derivedData"
+Models_BASE = "../analysis/models"
+Metrics_BASE = "../analysis/results/metrics"
+Plot_BASE = "../analysis/results/figures/stacking_meta_learner"
+Card_BASE = "../analysis/results/model_cards"
+EXPERIMENTS_BASE = "../analysis/experiments"
+mlruns_dir = Path(EXPERIMENTS_BASE) / "mlruns"
 
-mlruns_dir = Path(BASE) / "mlruns"
+# Create directories if not present
+os.makedirs(Plot_BASE, exist_ok=True)
+os.makedirs(Card_BASE, exist_ok=True)
+os.makedirs(mlruns_dir, exist_ok=True)
+
 for exp in mlruns_dir.glob("*/"):
     meta_file = exp / "meta.yaml"
     if not meta_file.exists():
         print(f"🧹 Removing stale experiment {exp}")
         import shutil; shutil.rmtree(exp)
 
-
+mlflow.set_tracking_uri(f"file:{mlruns_dir.resolve()}")
 mlflow.set_experiment("stacking_meta_learner")
 mlflow.start_run(run_name=f"meta_learner_{METRIC_PREFIX}")
 mlflow.log_param("seed", SEED)
@@ -78,7 +87,7 @@ model_paths = {
 # Validate files (log only, don't exit)
 missing = [m for m, path in model_paths.items() if not os.path.exists(path)]
 if missing:
-    log_path = f"stacking_missing_files_{METRIC_PREFIX}.txt"
+    log_path = f"../analysis/logs/stacking_missing_files_{METRIC_PREFIX}.txt"
     with open(log_path, "w") as f:
         f.write("\n".join(f"{m}: {model_paths[m]}" for m in missing))
     print(f"⚠️ Missing model files logged to: {log_path}")
@@ -108,7 +117,7 @@ if len(set(num_class_dims)) != 1:
     print("Mismatch in number of predicted classes across models:")
     for name, p in probs_by_model.items():
         print(f"  {name}: shape {p.shape}")
-    Path(f"stacking_class_mismatch_{METRIC_PREFIX}.txt").touch()
+    Path(f"../analysis/logs/stacking_class_mismatch_{METRIC_PREFIX}.txt").touch()
     sys.exit(1)
 
 # Intersect subject IDs
@@ -119,7 +128,7 @@ for ids in subj_by_model.values():
 
 if len(intersect_ids) == 0:
     print("No common subject_ids found across models.")
-    Path(f"stacking_inconsistent_{METRIC_PREFIX}.txt").touch()
+    Path(f"../analysis/logs/stacking_inconsistent_{METRIC_PREFIX}.txt").touch()
     sys.exit(0)
 
 intersect_ids = sorted(intersect_ids)
@@ -151,7 +160,7 @@ for name in model_paths:
 # Final stacking matrix
 if len(X_parts) < 2:
     print("❌ Not enough models with matching subject_ids to stack. Exiting.")
-    Path(f"stacking_incomplete_{METRIC_PREFIX}.txt").touch()
+    Path(f"../analysis/logs/stacking_incomplete_{METRIC_PREFIX}.txt").touch()
     sys.exit(1)
 
 X_meta = np.concatenate(X_parts, axis=1)
@@ -239,7 +248,7 @@ candidates = {
         class_weight="balanced", random_state=SEED,
         n_jobs=-1, verbose=-1
     ),
-    "CatBoost": CatBoostClassifier(verbose=0, random_seed=SEED, thread_count=-1),
+    "CatBoost": CatBoostClassifier(verbose=0, random_seed=SEED, thread_count=-1, train_dir="../analysis/experiments/catboost_info"),
     "MLP": MLPClassifier(hidden_layer_sizes=(128, 64), max_iter=500, random_state=SEED),
     "SVM": SVC(kernel="rbf", probability=True, class_weight="balanced", random_state=SEED),
     "NaiveBayes": GaussianNB(),
@@ -319,12 +328,12 @@ mlflow.log_metric("train_macro_f1", train_f1)
 mlflow.log_metric("test_macro_f1", f1_score(y_test_meta, y_pred_test, average="macro", zero_division=0))
 
 # Save calibrated model
-joblib.dump(calibrated, f"{BASE}/stacker_best_model_{METRIC_PREFIX}.pkl")
-with open(f"{BASE}/stacker_best_model_{METRIC_PREFIX}.txt", "w") as f:
+joblib.dump(calibrated, f"{Models_BASE}/stacker_best_model_{METRIC_PREFIX}.pkl")
+with open(f"{Metrics_BASE}/stacker_best_model_{METRIC_PREFIX}.txt", "w") as f:
     f.write(best_model[0] + " + CalibratedClassifierCV")
 
 # Save metrics
-METRIC_CSV = f"{BASE}/stacker_binary_metrics_{METRIC_PREFIX}_{best_model[0].lower()}.csv"
+METRIC_CSV = f"{Metrics_BASE}/stacker_binary_metrics_{METRIC_PREFIX}_{best_model[0].lower()}.csv"
 acc = accuracy_score(y_test_meta, y_pred_test)
 report = classification_report(y_test_meta, y_pred_test, zero_division=0, output_dict=True)
 
@@ -353,7 +362,7 @@ X_meta_filtered, y_true_filtered = filter_rare_classes(X_meta, y_true, min_count
 # ---------------------------------------------------------------------
 # Save all candidate scores (avg + per-fold)
 # ---------------------------------------------------------------------
-score_log_path = f"{BASE}/stacker_candidate_scores_{METRIC_PREFIX}.csv"
+score_log_path = f"{Metrics_BASE}/stacker_candidate_scores_{METRIC_PREFIX}.csv"
 with open(score_log_path, "w", newline="") as f:
     writer = csv.writer(f)
     # Header includes fold names dynamically
@@ -379,23 +388,23 @@ plt.xlabel("Predicted")
 plt.ylabel("True")
 plt.title(f"Confusion Matrix\nMeta-Learner: {best_model[0]} ({METRIC_PREFIX})", fontsize=12)
 plt.tight_layout()
-plt.savefig(f"{BASE}/stacker_confusion_{METRIC_PREFIX}.png")
+plt.savefig(f"{Plot_BASE}/stacker_confusion_{METRIC_PREFIX}.png")
 plt.show()
 
 print(f"Confusion matrix saved -> stacker_confusion_{METRIC_PREFIX}.png")
 
 mlflow.log_artifact(METRIC_CSV)
 mlflow.log_artifact(score_log_path)
-mlflow.log_artifact(f"{BASE}/stacker_confusion_{METRIC_PREFIX}.png")
-mlflow.log_artifact(f"{BASE}/stacker_best_model_{METRIC_PREFIX}.txt")
-mlflow.log_artifact(f"{BASE}/stacker_best_model_{METRIC_PREFIX}.pkl")
+mlflow.log_artifact(f"{Plot_BASE}/stacker_confusion_{METRIC_PREFIX}.png")
+mlflow.log_artifact(f"{Metrics_BASE}/stacker_best_model_{METRIC_PREFIX}.txt")
+mlflow.log_artifact(f"{Models_BASE}/stacker_best_model_{METRIC_PREFIX}.pkl")
 
 # ---------------------------------------------------------------------
 # 5. Additional Outputs: Predictions CSV, SHAP, Per-Fold Scores
 # ---------------------------------------------------------------------
 
 # Save CSV of y_true and y_pred_test
-pred_csv_path = f"{BASE}/stacker_preds_{METRIC_PREFIX}.csv"
+pred_csv_path = f"{Metrics_BASE}/stacker_preds_{METRIC_PREFIX}.csv"
 pd.DataFrame({
     "subject_id": test_subject_ids,
     "y_true": y_test_meta,
@@ -405,7 +414,7 @@ print(f"📄 Predictions CSV saved → {pred_csv_path}")
 mlflow.log_artifact(pred_csv_path)
 
 # Save per-fold F1 scores (best model only)
-fold_scores_log_path = f"{BASE}/stacker_best_model_folds_{METRIC_PREFIX}.csv"
+fold_scores_log_path = f"{Metrics_BASE}/stacker_best_model_folds_{METRIC_PREFIX}.csv"
 with open(fold_scores_log_path, "w", newline="") as f_csv:
     writer = csv.writer(f_csv)
     writer.writerow(["Fold", "Macro-F1"])
@@ -433,7 +442,7 @@ if best_model[0] in explainable_models:
         shap_values = explainer(X_explain_df)
 
         # Save summary plot
-        shap_plot_path = f"{BASE}/stacker_shap_summary_{METRIC_PREFIX}_{best_model[0].lower()}.png"
+        shap_plot_path = f"{Plot_BASE}/stacker_shap_summary_{METRIC_PREFIX}_{best_model[0].lower()}.png"
         shap.summary_plot(shap_values, X_train_meta[:200], show=False)
         plt.savefig(shap_plot_path, bbox_inches="tight")
         plt.close()
@@ -444,7 +453,7 @@ if best_model[0] in explainable_models:
         try:
             mean_shap = np.abs(shap_values.values).mean(axis=0)
             top_idx = np.argsort(mean_shap)[::-1][:20]
-            top_features_csv = f"{BASE}/stacker_shap_top_features_{METRIC_PREFIX}_{best_model[0].lower()}.csv"
+            top_features_csv = f"{Metrics_BASE}/stacker_shap_top_features_{METRIC_PREFIX}_{best_model[0].lower()}.csv"
             with open(top_features_csv, "w", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(["Feature Index", "Mean |SHAP|"])
@@ -465,10 +474,10 @@ if best_model[0] in explainable_models:
 else:
     print(f"ℹ️ SHAP skipped: {best_model[0]} not in explainable models")
 
-with open(f"{BASE}/stacker_meta_feature_names_{METRIC_PREFIX}.txt", "w") as f:
+with open(f"{Metrics_BASE}/stacker_meta_feature_names_{METRIC_PREFIX}.txt", "w") as f:
     for name in all_feature_names:
         f.write(name + "\n")
-mlflow.log_artifact(f"{BASE}/stacker_meta_feature_names_{METRIC_PREFIX}.txt")
+mlflow.log_artifact(f"{Metrics_BASE}/stacker_meta_feature_names_{METRIC_PREFIX}.txt")
 
 # ---------------------------------------------------------------------
 # 6. Additional SHAP Visualizations: Force and Waterfall for a sample
@@ -488,7 +497,7 @@ try:
         # -------------------------
         # Force plot
         # -------------------------
-        force_plot_path = f"{BASE}/stacker_shap_force_{METRIC_PREFIX}.html"
+        force_plot_path = f"{Plot_BASE}/stacker_shap_force_{METRIC_PREFIX}.html"
         shap_html = shap.plots.force(
             explainer.expected_value[0] if isinstance(explainer.expected_value, (list, np.ndarray)) else explainer.expected_value,
             shap_values_sample[0].values,
@@ -511,7 +520,7 @@ try:
         else:
             raise ValueError(f"Unexpected SHAP shape: {shap_values_sample.values.shape}")
 
-        waterfall_path = f"{BASE}/stacker_shap_waterfall_{METRIC_PREFIX}.png"
+        waterfall_path = f"{Plot_BASE}/stacker_shap_waterfall_{METRIC_PREFIX}.png"
         plt.savefig(waterfall_path, bbox_inches="tight")
         plt.close()
         mlflow.log_artifact(waterfall_path)
@@ -536,7 +545,7 @@ if best_model[0] == "LogisticRegression" and hasattr(best_model[1], "coef_"):
             ax.set_xlabel("Meta-Feature Index")
             ax.set_ylabel("Weight")
 
-        coef_plot_path = f"{BASE}/logreg_coef_{METRIC_PREFIX}.png"
+        coef_plot_path = f"{Plot_BASE}/logreg_coef_{METRIC_PREFIX}.png"
         plt.tight_layout()
         plt.savefig(coef_plot_path)
         mlflow.log_artifact(coef_plot_path)
@@ -547,7 +556,7 @@ if best_model[0] == "LogisticRegression" and hasattr(best_model[1], "coef_"):
 # ---------------------------------------------------------------------
 # 8. Model Card-style Interpretability Summary
 # ---------------------------------------------------------------------
-model_card_path = f"{BASE}/model_card_{METRIC_PREFIX}.md"
+model_card_path = f"{Card_BASE}/model_card_{METRIC_PREFIX}.md"
 with open(model_card_path, "w") as f_md:
     f_md.write(f"# Model Card: Meta-Learner ({best_model[0]})\n\n")
     f_md.write(f"**Metric Prefix**: `{METRIC_PREFIX}`\n")

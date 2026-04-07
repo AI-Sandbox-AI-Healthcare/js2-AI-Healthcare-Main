@@ -11,7 +11,7 @@ parser.add_argument("--metric_prefix", type=str, default=os.getenv("METRIC_PREFI
 parser.add_argument("--resume", action="store_true", help="Resume from checkpoint if available")
 args = parser.parse_args()
 
-BASE = "./"
+BASE = "../analysis/data/derivedData"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 METRIC_PREFIX = args.metric_prefix
 
