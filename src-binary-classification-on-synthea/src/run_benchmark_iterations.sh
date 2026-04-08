@@ -7,11 +7,11 @@
 
 set -euo pipefail
 
-TOTAL_ITERATIONS=30
+TOTAL_ITERATIONS=4
 RUN_SCRIPT="./run_all_models.sh"
-LOG_DIR="./logs"
-SUMMARY_CSV="./benchmark_timing_summary.csv"
-GLOBAL_LOG="full_benchmark.log"
+LOG_DIR="../analysis/logs"
+SUMMARY_CSV="../analysis/results/metrics/benchmark_timing_summary.csv"
+GLOBAL_LOG="$LOG_DIR/full_benchmark.log"
 
 mkdir -p "$LOG_DIR"
 
@@ -140,7 +140,7 @@ echo "=== STEP 3: Merge Results ===" | tee -a "$GLOBAL_LOG"
 if compgen -G "$LOG_DIR/iter*.out" > /dev/null; then
   python3 merge_benchmark_results.py | tee -a "$GLOBAL_LOG"
   python3 wilcoxon_test.py | tee -a "$GLOBAL_LOG"
-#  python3 plot_f1_distributions.py | tee -a "$GLOBAL_LOG"
+  #python3 plot_f1_distributions.py | tee -a "$GLOBAL_LOG"
   python3 summarize_benchmark.py | tee -a "$GLOBAL_LOG"
   echo "🎉 Benchmarking complete! All outputs updated." | tee -a "$GLOBAL_LOG"
 else
@@ -151,7 +151,9 @@ echo "=== STEP 4: Summarize Benchmark to MLflow ===" | tee -a "$GLOBAL_LOG"
 bash run_summarize_benchmarks.sh | tee -a "$GLOBAL_LOG"
 
 echo "=== STEP 5: Artifact Summary ===" | tee -a "$GLOBAL_LOG"
-ls -lh results_summary*.csv iteration_summary.csv logs/*.out 2>/dev/null \
+ls -lh ../analysis/results/metrics/results_summary*.csv \
+       ../analysis/results/metrics/iteration_summary.csv \
+       ../analysis/logs/*.out 2>/dev/null \
   | grep -v '.err' | tee -a "$GLOBAL_LOG" || echo "⚠️  No artifacts found." | tee -a "$GLOBAL_LOG"
 
 echo "=== STEP 6: Organize Outputs ===" | tee -a "$GLOBAL_LOG"

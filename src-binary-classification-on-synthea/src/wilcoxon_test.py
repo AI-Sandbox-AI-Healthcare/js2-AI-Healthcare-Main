@@ -6,7 +6,8 @@ import glob, sys, itertools
 # ---------------------------------------------------------------------
 # 1. Load all iteration summaries
 # ---------------------------------------------------------------------
-files = glob.glob("results_summary_iter*.csv")
+RESULTS_DIR = "../analysis/results/metrics"
+files = glob.glob(f"{RESULTS_DIR}/results_summary_iter*.csv")
 if not files:
     print("❌ No results_summary_iter*.csv files found.")
     sys.exit(1)
@@ -106,5 +107,6 @@ print("--------------------------------------------------")
 print(results_df.to_string(index=False))
 
 # Save results
-results_df.to_csv("wilcoxon_results.csv", index=False)
-print("\n✅ Saved detailed results → wilcoxon_results.csv")
+out_file = f"{RESULTS_DIR}/wilcoxon_results.csv"
+results_df.to_csv(out_file, index=False)
+print(f"\n✅ Saved detailed results → {out_file}")

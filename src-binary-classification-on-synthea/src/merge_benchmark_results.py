@@ -12,11 +12,11 @@ import glob
 import os
 from collections import defaultdict
 
-BASE = "./"
-output_global = os.path.join(BASE, "results_summary_all_iterations.csv")
+Metric_BASE = "../analysis/results/metrics/"
+output_global = os.path.join(Metric_BASE, "results_summary_all_iterations.csv")
 
 # Detect all relevant *_metrics_iter*.csv files
-metric_files = sorted(glob.glob(os.path.join(BASE, "*_metrics_iter*.csv")))
+metric_files = sorted(glob.glob(os.path.join(Metric_BASE, "*_metrics_iter*.csv")))
 
 if not metric_files:
     print("❌ No metrics files found. Please check the directory and filenames.")
@@ -60,7 +60,7 @@ for run, files in grouped.items():
         dfs.append(df)
 
     df_iter = pd.concat(dfs, ignore_index=True)
-    iter_file = os.path.join(BASE, f"results_summary_{run}.csv")
+    iter_file = os.path.join(Metric_BASE, f"results_summary_{run}.csv")
     df_iter.to_csv(iter_file, index=False)
     print(f"✅ Saved per-iteration summary → {iter_file}")
     all_summaries.append(df_iter)

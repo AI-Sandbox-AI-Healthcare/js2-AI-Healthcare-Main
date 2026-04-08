@@ -5,8 +5,11 @@
 
 set -euo pipefail
 
-LOG_DIR="./logs"
-SUMMARY_CSV="./benchmark_timing_summary.csv"
+LOG_DIR="../analysis/logs"
+SUMMARY_CSV="../analysis/results/metrics/benchmark_timing_summary.csv"
+
+mkdir -p "$LOG_DIR"
+mkdir -p "$(dirname "$SUMMARY_CSV")"
 
 # Check if logs and summary exist
 if [ ! -d "$LOG_DIR" ]; then
@@ -67,6 +70,13 @@ echo "📝 Logging summary to MLflow..."
 python3 - <<PYTHON
 import mlflow
 import pandas as pd
+from pathlib import Path
+
+tracking_dir = Path("../analysis/experiments/mlruns").resolve()
+tracking_dir.mkdir(parents=True, exist_ok=True)
+
+mlflow.set_tracking_uri(f"file:{tracking_dir}")
+mlflow.set_experiment("benchmark_summary")
 
 summary_path = "$SUMMARY_CSV"
 df = pd.read_csv(summary_path)

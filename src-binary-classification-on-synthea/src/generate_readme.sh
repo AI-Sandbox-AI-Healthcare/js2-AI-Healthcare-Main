@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-README_FILE="README.md"
+README_FILE="../README.md"
 
 echo "📝 Generating $README_FILE..."
 
@@ -16,22 +16,24 @@ This directory contains the results from the **AI Sandbox Benchmark Pipeline**. 
 
 ## 📂 Directory Structure
 
-- \`logs/\` — Raw logs from all iterations and pipeline steps.
-- \`plots/\` — Visualizations such as:
+- \`analysis/logs/\` — Raw logs from all iterations and pipeline steps.
+- \`analysis/results/figures/\` — Visualizations such as:
   - F1 score distributions per model
   - F1 over iterations
   - Confusion matrices
   - SHAP force/waterfall plots
-- \`shap_outputs/\` — SHAP feature explanations:
-  - \`.html\`: Interactive force plots
-  - \`.csv\`: Top feature importance scores
-- \`model_cards/\` — Human-readable model documentation:
+- \`analysis/results/figures/stacking_meta_learner/\` — Confusion matrices, SHAP plots, and coefficient plots for the meta-learner.
+- \`analysis/results/model_cards/\` — Human-readable model documentation:
   - Final model card (\`model_card_iterX.md\`)
   - Logistic regression coefficient plots
-- \`metrics/\` — Model metrics and predictions:
+- \`analysis/results/metrics/\` — Model metrics and predictions:
   - Per-iteration candidate scores
   - Final stacked model metrics
   - Raw prediction outputs
+- \`analysis/models/\` — Saved trained model artifacts.
+- \`analysis/experiments/mlruns/\` — MLflow experiment tracking outputs.
+- \`analysis/experiments/catboost_info/\` — CatBoost training logs and metadata.
+- \`analysis/data/derivedData/\` — Reusable intermediate outputs such as probability \`.npz\` files.
 
 ## 🧪 Pipeline Steps
 
@@ -48,13 +50,13 @@ This project follows a standardized benchmark workflow:
 
 | File | Description |
 |------|-------------|
-| \`iteration_summary.csv\` | Per-model metrics across iterations |
-| \`benchmark_timing_summary.csv\` | Timing info and seed logs |
-| \`results_summary.txt\` | High-level summary report |
-| \`stacker_preds_iterX.csv\` | Final predictions from the meta-learner |
-| \`stacker_multiclass_metrics_iterX_logisticregression.csv\` | Classification report for meta-learner |
-| \`stacker_candidate_scores_iterX.csv\` | Comparison of meta-learner candidates |
-| \`logreg_coef_iterX.png\` | Logistic regression coefficient plot |
+| \`analysis/results/metrics/iteration_summary.csv\` | Per-model metrics across iterations |
+| \`analysis/results/metrics/benchmark_timing_summary.csv\` | Timing info and seed logs |
+| \`analysis/results/metrics/results_summary.txt\` | High-level summary report |
+| \`analysis/results/metrics/stacker_preds_iterX.csv\` | Final predictions from the meta-learner |
+| \`analysis/results/metrics/stacker_candidate_scores_iterX.csv\` | Comparison of meta-learner candidates |
+| \`analysis/results/figures/stacking_meta_learner/logreg_coef_iterX.png\` | Logistic regression coefficient plot |
+| \`analysis/results/model_cards/model_card_iterX.md\` | Model card for the selected meta-learner |
 
 ## 🧠 About
 
@@ -62,4 +64,4 @@ This benchmark was generated using the **AI Sandbox Benchmark Pipeline** on MIMI
 
 EOF
 
-echo "✅ README.md created!"
+echo "✅ ../README.md created!"

@@ -6,8 +6,8 @@ Summarize Benchmark Results and Resource Usage
 import pandas as pd
 
 # === 1. Load Files ===
-benchmark_file = "results_summary_all_iterations.csv"
-resource_file = "resource_usage.csv"
+benchmark_file = "../analysis/results/metrics/results_summary_all_iterations.csv"
+resource_file = "../analysis/logs/resource_usage.csv"
 
 benchmark_df = pd.read_csv(benchmark_file)
 resource_df = pd.read_csv(resource_file)
@@ -110,7 +110,7 @@ merged = merged[[
 ]]
 
 # === 6. Save Final Summary ===
-output_file = "final_benchmark_summary.csv"
+output_file = "../analysis/results/metrics/final_benchmark_summary.csv"
 merged.to_csv(output_file, index=False)
 
 print(f"✅ Final Benchmark Summary saved to {output_file}")

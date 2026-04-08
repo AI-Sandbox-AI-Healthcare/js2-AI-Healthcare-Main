@@ -13,13 +13,16 @@ from collections import defaultdict
 # -----------------------------
 # Configuration
 # -----------------------------
-BASE = "./"
-output_model_card = os.path.join(BASE, "best-stacker-model-across-iterations.md")
+Metric_BASE = "../analysis/results/metrics/"
+Model_BASE = "../analysis/models/"
+Card_BASE = "../analysis/results/model_cards/"
+
+output_model_card = os.path.join(Card_BASE, "best-stacker-model-across-iterations.md")
 
 # -----------------------------
 # Step 1: Find all CSVs
 # -----------------------------
-fold_score_files = sorted(glob.glob(f"{BASE}/stacker_best_model_folds_*.csv"))
+fold_score_files = sorted(glob.glob(f"{Metric_BASE}/stacker_best_model_folds_*.csv"))
 
 if not fold_score_files:
     raise FileNotFoundError("No fold-score CSV files found!")
@@ -58,21 +61,21 @@ best_iter = match.group(1)
 # Step 4: Copy & rename artifacts
 # -----------------------------
 # Text file
-txt_file = os.path.join(BASE, f"stacker_best_model_{best_iter}.txt")
+txt_file = os.path.join(Metric_BASE, f"stacker_best_model_{best_iter}.txt")
 if os.path.exists(txt_file):
-    shutil.copy(txt_file, os.path.join(BASE, "stacker_best_model_across_iterations.txt"))
+    shutil.copy(txt_file, os.path.join(Metric_BASE, "stacker_best_model_across_iterations.txt"))
 
 # Pickle file
-pkl_file = os.path.join(BASE, f"stacker_best_model_{best_iter}.pkl")
+pkl_file = os.path.join(Model_BASE, f"stacker_best_model_{best_iter}.pkl")
 if os.path.exists(pkl_file):
-    shutil.copy(pkl_file, os.path.join(BASE, "stacker_best_model_across_iterations.pkl"))
+    shutil.copy(pkl_file, os.path.join(Model_BASE, "stacker_best_model_across_iterations.pkl"))
 
 # Binary metrics CSVs
-metrics_files = glob.glob(os.path.join(BASE, f"stacker_binary_metrics_{best_iter}_*.csv"))
+metrics_files = glob.glob(os.path.join(Metric_BASE, f"stacker_binary_metrics_{best_iter}_*.csv"))
 for f in metrics_files:
     fname = os.path.basename(f)
     new_fname = fname.replace(best_iter, "across_iterations")
-    shutil.copy(f, os.path.join(BASE, new_fname))
+    shutil.copy(f, os.path.join(Metric_BASE, new_fname))
 
 # -----------------------------
 # Step 5: Update model card
@@ -82,8 +85,8 @@ with open(output_model_card, "w") as f:
     f.write(f"**Best iteration:** `{best_iter}`\n")
     f.write(f"**Average Macro-F1:** {best_avg_f1:.4f}\n\n")
     f.write("## Saved Artifacts\n")
-    f.write("- `stacker_best_model_across_iterations.txt`\n")
-    f.write("- `stacker_best_model_across_iterations.pkl`\n")
+    f.write("- `../analysis/results/metrics/stacker_best_model_across_iterations.txt`\n")
+    f.write("- `../analysis/models/stacker_best_model_across_iterations.pkl`\n")
 
     for csv_file in metrics_files:  
         new_fname = os.path.basename(csv_file).replace(best_iter, "across_iterations")
