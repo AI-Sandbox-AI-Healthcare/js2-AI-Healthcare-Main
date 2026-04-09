@@ -11,6 +11,7 @@ trap 'echo "⚠️ Error in run_all_models.sh at line $LINENO (exit code $?)" | 
 # 0. Setup logging
 # ---------------------------------------------------------------------
 BASE="./"
+DERIVED_DIR="../analysis/data/derivedData"
 METRIC_PREFIX="${METRIC_PREFIX:-iter1}"
 SEED_OFFSET="${SEED_OFFSET:-0}"
 LOG_DIR="../analysis/logs"
@@ -65,10 +66,12 @@ if [ "$METRIC_PREFIX" = "iter1" ]; then
   fi
 else
   echo "🔄 [$METRIC_PREFIX] Reusing tokenized files from iter1..."
-  for f in ../analysis/data/derivedData/tokenized_input_ids_iter1.npy ../analysis/data/derivedData/tokenized_attention_masks_iter1.npy ../analysis/data/derivedData/tokenized_subject_ids_iter1.npy; do
-    link_name="${f/iter1/$METRIC_PREFIX}"
-    if [ ! -f "$link_name" ]; then
-      ln -s "$f" "$link_name"
+  for name in tokenized_input_ids tokenized_attention_masks tokenized_subject_ids; do
+    src="$(realpath "$DERIVED_DIR/${name}_iter1.npy")"
+    dst="$DERIVED_DIR/${name}_${METRIC_PREFIX}.npy"
+
+    if [ ! -e "$dst" ]; then
+      ln -s "$src" "$dst"
     fi
   done
 fi
@@ -114,7 +117,8 @@ wait
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-CLS_FILE="../analysis/data/derivedData/precomputed_bert_cls_${METRIC_PREFIX}.npz"
+CLS_FILE="$DERIVED_DIR/precomputed_bert_cls_${METRIC_PREFIX}.npz"
+SRC_FILE="$DERIVED_DIR/precomputed_bert_cls_iter1.npz"
 
 if [ "$METRIC_PREFIX" = "iter1" ]; then
   if [ -f "$CLS_FILE" ]; then
@@ -126,8 +130,15 @@ if [ "$METRIC_PREFIX" = "iter1" ]; then
   fi
 else
   echo "🔄 [$METRIC_PREFIX] Reusing precomputed BERT embeddings from iter1..."
-  if [ ! -f "$CLS_FILE" ]; then
-    ln -s "../analysis/data/derivedData/precomputed_bert_cls_iter1.npz" "$CLS_FILE"
+  if [ ! -e "$SRC_FILE" ]; then
+    echo "⚠️ Missing source file: $SRC_FILE" | tee -a "$LOGFILE"
+    exit 1
+  fi
+
+  SRC_ABS="$(realpath "$SRC_FILE")"
+
+  if [ ! -e "$CLS_FILE" ]; then
+    ln -s "$SRC_ABS" "$CLS_FILE"
   fi
 fi
 
@@ -147,8 +158,6 @@ fi
 # ---------------------------------------------------------------------
 echo -e "\n=== [6] Stacking Meta-Learner ===" | tee -a "$LOGFILE"
 start=$(date +%s)
-
-DERIVED_DIR="../analysis/data/derivedData"
 
 # sanity-check that all .npz are present
 missing=false
